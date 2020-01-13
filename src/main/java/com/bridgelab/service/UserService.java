@@ -35,7 +35,7 @@ public class UserService {
 	 */
 	public Response getUsers() {
 		List<User> list = new ArrayList<User>();
-		userRepository.findAll().forEach(list::add);
+		userRepository.findAll().forEach(list::add);	
 		return new Response(Message.STATUS200, Message.ALL_USERS, list);
 	}
 
@@ -65,7 +65,6 @@ public class UserService {
 	 */
 	public boolean isVerify(int id) {
 		Optional<User> user = userRepository.findById(id);
-		System.out.println(user);
 		if (user != null) {
 			String token = jwtUtil.generateToken(user.get().getEmail());
 			String recieveremail = jwtUtil.extractUsername(token);
@@ -111,7 +110,16 @@ public class UserService {
 	public Response getUser(String token) {
 		String username = jwtUtil.extractUsername(token);
 		User user = userRepository.findByEmail(username);
-		List<User> list = new ArrayList<User>();
+		List<User> list=null;
+		try
+		{
+		 list = new ArrayList<User>();
+		
+		}
+		catch(Exception e)
+		{
+			return new Response(Message.STATUS404,Message.USER_NOT_FOUND, null);
+		}
 		list.add(user);
 		return new Response(Message.STATUS200, Message.LOGIN_SUCCESS + "token=" + token, list);
 	}
@@ -162,5 +170,7 @@ public class UserService {
 //		                                        //generate token for email verification
 //		return jwtUtil.generateToken(username);
 //	}
+
+	
 
 }

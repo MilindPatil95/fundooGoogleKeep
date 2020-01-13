@@ -2,12 +2,14 @@ package com.bridgelab.repository;
 
 import java.util.List;
 
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import com.bridgelab.model.UserLabel;
 
-import com.bridgelab.model.Note;
 @Repository
-public interface FundooNodeRepository extends JpaRepository<Note,Integer>
+public interface LabelRepository extends JpaRepository<UserLabel,Integer>
 {
-  List<Note> findByUserId(int id);
+	List<UserLabel> findAllByUserId(int id);
+	
 }
