@@ -1,4 +1,5 @@
 package com.bridgelabz.googlekeep.service;
+
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -7,17 +8,22 @@ import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import javax.validation.constraints.Pattern;
+
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.bridgelabz.googlekeep.CustomException.CustomException;
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
+import com.bridgelabz.googlekeep.dto.DateDto;
 import com.bridgelabz.googlekeep.dto.NoteDto;
 import com.bridgelabz.googlekeep.model.Collaborated;
 import com.bridgelabz.googlekeep.model.Collaborator;
 import com.bridgelabz.googlekeep.model.Note;
 import com.bridgelabz.googlekeep.model.NoteLabel;
+import com.bridgelabz.googlekeep.model.SotedNote;
 import com.bridgelabz.googlekeep.model.User;
 import com.bridgelabz.googlekeep.model.UserLabel;
 import com.bridgelabz.googlekeep.repository.CollaboratorRepository;
@@ -30,7 +36,7 @@ import com.bridgelabz.googlekeep.utility.JwtUtil;
 import com.bridgelabz.googlekeep.utility.Message;
 
 @Service
-public class NoteServiceImp implements INoteService{
+public class NoteServiceImp implements INoteService {
 	@Autowired
 	NoteRepository noteRepository;
 	@Autowired
@@ -89,22 +95,25 @@ public class NoteServiceImp implements INoteService{
 	 * @return :Respose type
 	 */
 	@Override
-	public Response geAllNotes(String token) {
+	public Response getAllNotes(String token) {
 		User user = userService.isUser(token);
-		List<Note> list = new ArrayList<Note>();     
-		List<Object> obj=new ArrayList<Object>();
-		list=noteRepository.findByUserId(user.getId());
-	    for(Note note:list)
-	    {	if(note.isArchive()==false)
-	       { if(note.isTrash()==false)
-	         {
-	           obj.add(note);
-	          obj.add(getAllNoteLabels(token, note.getNoteId()).getObj());
-	          List<Collaborator> collboratorlist= collaboratorRepository.findAllByNoteid(note.getNoteId());
-	          obj.add(collboratorlist);
-	         }
-	       }
-	     }                
+		List<Note> list = new ArrayList<Note>();
+		List<SotedNote> obj = new ArrayList<>();
+		list = noteRepository.findByUserId(user.getId());
+		for (Note note : list) {
+			SotedNote objSotedNote = new SotedNote();
+			if (note.isArchive() == false) {
+				if (note.isTrash() == false) {
+					objSotedNote.setNote(note);
+					@SuppressWarnings("unchecked")
+					List<UserLabel> list1 = (List<UserLabel>) getAllNoteLabels(token, note.getNoteId()).getObj();// add
+					objSotedNote.setList(list1); // add UserLabel
+					List<Collaborator> collboratorlist = collaboratorRepository.findAllByNoteid(note.getNoteId());
+					objSotedNote.setCollboratorlist(collboratorlist);
+					obj.add(objSotedNote);// add collaborator type list
+				}
+			}
+		}
 		return new Response(Message.STATUS200, Message.NOTES_RETURN, obj);
 
 	}
@@ -118,12 +127,12 @@ public class NoteServiceImp implements INoteService{
 	 */
 	@Override
 	public Response update(String token, NoteDto notedto, int note_id) {
-		Note  note=checkNote(note_id);
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());	
+		Note note = checkNote(note_id);
+		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
 		System.out.println(list);
 		System.out.println(note);
 		note.setTitle(notedto.getTitle());
-		
+
 		note.setDesctiption(notedto.getDesctiption());
 		note.setColor(notedto.getColor());
 		noteRepository.save(note);
@@ -133,10 +142,11 @@ public class NoteServiceImp implements INoteService{
 
 	/**
 	 * @purpose :pin and unpin to note
-	 * @param 	:token
-	 * @param 	:note_id (int type)
+	 * @param :token
+	 * @param :note_id (int type)
 	 * @return :Respose type
-	 */@Override
+	 */
+	@Override
 	public Response pin(String token, int note_id) {
 		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
 		checkNote(note_id);
@@ -178,7 +188,7 @@ public class NoteServiceImp implements INoteService{
 	 * @param :note_id
 	 * @return :Respose type
 	 */
-	 @Override
+	@Override
 	public Response archive(String token, int note_id) {
 
 		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
@@ -220,35 +230,35 @@ public class NoteServiceImp implements INoteService{
 	 * @param :token
 	 * @return :Respose type
 	 */
-	 @Override
-	public Response geAllArchive(String token) {
+	@Override
+	public Response getAllArchive(String token) {
 		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
 		List<Note> list1 = list.stream().filter(e -> e.isArchive() == true).collect(Collectors.toList());
 		return new Response(Message.STATUS200, Message.ALL_ARCHIVE, list1);
 	}
 
 	/**
-	 * @purpose :	archive and archive to note
-	 * @param 	:	token
-	 * @param 	:	note_id
-	 * @return 	:	Respose type
+	 * @purpose : archive and archive to note
+	 * @param : token
+	 * @param : note_id
+	 * @return : Respose type
 	 */
-	 @Override
-	public Response geAllTrash(String token) {
+	@Override
+	public Response getAllTrash(String token) {
 		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
 		List<Note> list1 = list.stream().filter(e -> e.isTrash() == true).collect(Collectors.toList());
 		return new Response(Message.STATUS200, Message.ALL_TRASH, list1);
 	}
 
 	/**
-	 * @purpose : 	To trash perticular note
-	 * @param 	:	token
-	 * @param 	:	note_id
-	 * @return 	:	Respose type
+	 * @purpose : To trash perticular note
+	 * @param : token
+	 * @param : note_id
+	 * @return : Respose type
 	 */
-	 @Override
+	@Override
 	public Response trash(String token, int note_id) {
-		 checkNote(note_id);
+		checkNote(note_id);
 		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
 		Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
 		if (note.isTrash()) {
@@ -264,49 +274,55 @@ public class NoteServiceImp implements INoteService{
 	}
 
 	/**
-	 * @purpose :   To set Reminder
-	 * @param   :	token
-	 * @param   :   note_id 
-	 * @return  :   Respose type
+	 * @purpose : To set Reminder
+	 * @param : token
+	 * @param : note_id
+	 * @return : Respose type
 	 */
-	 @Override
-	public Response reminder(String token, int noteid, String reminderdate) {
+	@Override
+	public Response reminder(DateDto datedto, String token) {
+		List<Object> datelist = getDates(datedto.getReminderdate());
+		userService.isUser(token);
+		Optional<Note> cheknote = noteRepository.findById(datedto.getNoteid());
+		if (cheknote.get().getReminder() == null) {
 
-		List<Object> datelist = getDates(reminderdate);
-		checkNote(noteid);
-		Date systemdate = (Date) datelist.get(0);
-		Date userdate = (Date) datelist.get(1);
-		if (userdate.after(systemdate)) {
-			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-			Note note = list.stream().filter(e -> e.getNoteId() == noteid).collect(Collectors.toList()).get(0);
-			note.setReminder(systemdate.toString());
-			noteRepository.save(list.get(0));
-			return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+			checkNote(datedto.getNoteid());
+			Date systemdate = (Date) datelist.get(0);
+			Date userdate = (Date) datelist.get(1);
+			if (userdate.after(systemdate)) {
+				Note note =new Note();
+				note.setNoteId(datedto.getNoteid());
+				note.setReminder(systemdate.toString());
+				noteRepository.save(note);
+				return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+			} else
+				return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
 		} else
-			return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
+			return new Response(Message.STATUS200, Message.REMINDER_SET_ALLREADY, null);
 	}
 
 	/**
 	 * @purpose : To edit Reminder
-	 * @param   : token 
-	 * @param   : noteid
-	 * @param   : reminderdate
+	 * @param : token
+	 * @param : noteid
+	 * @param : reminderdate
 	 * @return
 	 */
-	 @Override
-	public Response editReminder(String token, int noteid, String reminderdate) {
-		 checkNote(noteid);
-		List<Object> datelist = getDates(reminderdate);
+	@Override
+	public Response editReminder(DateDto datedto, String token) {
+		List<Object> datelist = getDates(datedto.getReminderdate());
+		userService.isUser(token);		
+		checkNote(datedto.getNoteid());
 		Date systemdate = (Date) datelist.get(0);
 		Date userdate = (Date) datelist.get(1);
 		if (userdate.after(systemdate)) {
-			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-			Note note = list.stream().filter(e -> e.getNoteId() == noteid).collect(Collectors.toList()).get(0);
-			note.setReminder(systemdate.toString());
-			noteRepository.save(list.get(0));
-			return new Response(Message.STATUS200, Message.REMINDER_EDIT, null);
-		}
-		return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
+			Note note=new Note();
+			note.setNoteId(datedto.getNoteid());
+			note.setReminder(datedto.getReminderdate());
+			noteRepository.save(note);
+			return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+		} else
+			return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
 
 	}
 
@@ -316,20 +332,17 @@ public class NoteServiceImp implements INoteService{
 	 * @param : Noteid
 	 * @return : Response Type
 	 */
-	 @Override
-	public Response deleteReminder(String token, int note_id, String reminderdate) {
-		 checkNote(note_id);
-		List<Object> datelist = getDates(reminderdate);
-		Date systemdate = (Date) datelist.get(0);
-		Date userdate = (Date) datelist.get(1);
-		if (userdate.after(systemdate)) {
-			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+	@Override
+	public Response deleteReminder(int noteid, String token) {
 
-			Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
-			noteRepository.delete(note);
-			return new Response(Message.STATUS200, Message.REMINDER_DELETE, note);
-		}
-		return new Response(Message.STATUS200, Message.REMINDER_NOT_DELETED, null);
+		userService.isUser(token);
+		checkNote(noteid);
+		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+		Note note = list.stream().filter(e -> e.getNoteId() == noteid).collect(Collectors.toList()).get(0);
+		note.setReminder(null);
+		noteRepository.save(note);
+		return new Response(Message.STATUS200, Message.REMINDER_DELETE, null);
+
 	}
 
 	/**
@@ -338,11 +351,11 @@ public class NoteServiceImp implements INoteService{
 	 * @param : DTO -CollaboratorDto type
 	 * @return : Response Type
 	 */
-	 @Override
+	@Override
 	public Response collaborator(CollaboratorDto collaboratorDto, String token) {
-		User user=userService.isUser(token);
+		User user = userService.isUser(token);
 		checkNote(collaboratorDto.getNoteid());
-		User reciver=checkByUserByEmailId(collaboratorDto.getReciveremailid());
+		User reciver = checkByUserByEmailId(collaboratorDto.getReciveremailid());
 		Collaborator collaborator = mapper.map(collaboratorDto, Collaborator.class);
 		collaborator.setReciverid(reciver.getId());
 		collaborator.setSenderid(user.getId());
@@ -355,19 +368,21 @@ public class NoteServiceImp implements INoteService{
 	 * @param : Token
 	 * @return : Response Type
 	 */
-	 @Override
-	public Response getCollaborated(String token ,int noteid) {
+	@Override
+	public Response getCollaborated(String token, int noteid) {
 		User user = userService.isUser(token);
 		checkNoteByUserId(user.getId());
 		Collaborated collaboratedlist = new Collaborated();
-		List<Collaborator> list = collaboratorRepository.findAllBySenderid(user.getId());    // get list of  collaborated row
-	     list=     list.stream().filter(e-> e.getNoteid()==noteid).collect(Collectors.toList());
+		List<Collaborator> list = collaboratorRepository.findAllBySenderid(user.getId()); // get list of collaborated
+																							// row
+		list = list.stream().filter(e -> e.getNoteid() == noteid).collect(Collectors.toList());
 		if (list != null) {
 			List<String> listofemails = new ArrayList<String>();
-			for (Collaborator collaborator : list) {				                                
-				listofemails.add(userRepository.findById(collaborator.getReciverid()).get().getEmail());   // list of reciever			 
+			for (Collaborator collaborator : list) {
+				listofemails.add(userRepository.findById(collaborator.getReciverid()).get().getEmail()); // list of
+																											// reciever
 			}
-			List<String> emails = listofemails.stream().distinct().collect(Collectors.toList());          //remove douplicate
+			List<String> emails = listofemails.stream().distinct().collect(Collectors.toList()); // remove douplicate
 			collaboratedlist.setSender(user.getEmail());
 			collaboratedlist.setReciever(emails);
 
@@ -429,8 +444,8 @@ public class NoteServiceImp implements INoteService{
 
 	/**
 	 * @purpose : To get all Collaborator
-	 * @param 	: token
-	 * @return  : Response Type
+	 * @param : token
+	 * @return : Response Type
 	 */
 
 //	public Response getAllCollaborator(String token) {
@@ -443,10 +458,10 @@ public class NoteServiceImp implements INoteService{
 //	}
 
 	/**
-	 * @purpose  : To get all notes labels
-	 * @param    : note id
-	 * @param    : token
-	 * @return   : Response Type
+	 * @purpose : To get all notes labels
+	 * @param : note id
+	 * @param : token
+	 * @return : Response Type
 	 */
 	@Override
 	public Response getAllNoteLabels(String token, int noteid) {
@@ -471,9 +486,9 @@ public class NoteServiceImp implements INoteService{
 	}
 
 	/**
-	 * @purpose 		: return system date and user date in dd-mm-yyyy format
-	 * @param userdate	: store date  
-	 * @return          : Object type list
+	 * @purpose : return system date and user date in dd-mm-yyyy format
+	 * @param userdate : store date
+	 * @return : Object type list
 	 */
 	public List<Object> getDates(String userdate) {
 		Date systemdate = null;
@@ -492,16 +507,41 @@ public class NoteServiceImp implements INoteService{
 		list.add(reminderdate);
 		return list;
 	}
-	
-	public User checkByUserByEmailId(String email)
-	{
-	   User user = userRepository.findByEmail(email);
-	     if(user==null)
-	     {
-	    	 throw new CustomException.UserNotExistException("Invalid Email Id");
-	     }
+
+	public User checkByUserByEmailId(String email) {
+		User user = userRepository.findByEmail(email);
+		if (user == null) {
+			throw new CustomException.UserNotExistException("Invalid Email Id");
+		}
 		return user;
 	}
-	
+
+	@SuppressWarnings("unchecked")
+	public Response sortByTitle(String token) {
+		userService.isUser(token);
+		List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
+		System.out.println(list);
+		try {
+			list = list.stream().sorted((list1, list2) -> list1.getNote().getTitle().compareTo(list2.getNote().getTitle())).collect(Collectors.toList());
+		} catch (Exception e) {
+			throw new CustomException.EmptyNoteList("notes list is empty");
+		}
+		return new Response(Message.STATUS200, Message.SORTED_NOTE, list);
+	}
+
+	@SuppressWarnings("unchecked")
+	public Response sortByDscription(String token) {
+		userService.isUser(token);
+		List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
+		System.out.println(list);
+		try {
+			list = list.stream().sorted(
+					(list1, list2) -> list1.getNote().getDesctiption().compareTo(list2.getNote().getDesctiption()))
+					.collect(Collectors.toList());
+		} catch (Exception e) {
+			throw new CustomException.EmptyNoteList("notes list is empty");
+		}
+		return new Response(Message.STATUS200, Message.SORTED_NOTE, list);
+	}
 
 }

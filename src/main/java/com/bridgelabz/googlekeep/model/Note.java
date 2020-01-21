@@ -20,7 +20,13 @@ public class Note
   private boolean isTrash;
   private int userId;
   
-  public boolean isArchive() {
+  @Override
+public String toString() {
+	return "Note [noteId=" + noteId + ", title=" + title + ", desctiption=" + desctiption + ", reminder=" + reminder
+			+ ", color=" + color + ", isArchive=" + isArchive + ", isPin=" + isPin + ", isTrash=" + isTrash
+			+ ", userId=" + userId + "]";
+}
+public boolean isArchive() {
 	return isArchive;
 }
 public void setArchive(boolean isArchive) {

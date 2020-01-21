@@ -75,8 +75,13 @@ public class Message {
 	public static final String REMINDER_EDIT = "Reminder Updated Successfully";
 	public static final String INVALID_DATE = "invalid date formate";
 	public static final String REMINDER_NOT_SET = "invalid date Reminder not set ";
+	public static final String REMINDER_SET_ALLREADY = "Reminder Set Already";
+	
 	public static final String REMINDER_NOT_DELETED = "remider not found";
+	
 	public static final String USER_NOT_EXIST = "User not Exist";
+	public static final String SORTED_NOTE = "All notes are soted successfully";
+	
 	
 	
 	

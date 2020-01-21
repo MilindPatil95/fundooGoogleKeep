@@ -51,7 +51,6 @@ public class UserServiceImp implements IUserService{
 	public Response addUser(UserDto userDto) {
 	   System.out.println(userDto);
 		User user = mappper.map(userDto, User.class);
-		System.out.println("afdsasffdsf");
 		user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 		System.out.println("encoded");
 		User checkuser = userRepository.findByEmail(userDto.getEmail());

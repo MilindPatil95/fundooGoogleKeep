@@ -1,5 +1,7 @@
 package com.bridgelabz.googlekeep.controller;
 
+import javax.validation.Valid;
+
 import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
+import com.bridgelabz.googlekeep.dto.DateDto;
 import com.bridgelabz.googlekeep.dto.NoteDto;
 import com.bridgelabz.googlekeep.response.Response;
 import com.bridgelabz.googlekeep.service.NoteServiceImp;
@@ -33,7 +36,7 @@ public class NoteController {
 
 	@GetMapping("/get")
 	public Response getNotes(@RequestHeader String token) {
-		return noteService.geAllNotes(token);
+		return noteService.getAllNotes(token);
 	}
 
 	@PutMapping("/update")
@@ -52,8 +55,8 @@ public class NoteController {
 	}
 
 	@PutMapping("/getAllArchive")
-	public Response geAllArchive(@RequestHeader String token) {
-		return noteService.geAllArchive(token);
+	public Response getAllArchive(@RequestHeader String token) {
+		return noteService.getAllArchive(token);
 	}
 
 	@PutMapping("/trash")
@@ -62,23 +65,24 @@ public class NoteController {
 	}
 
 	@PutMapping("/getAllTrash")
-	public Response geAllTrash(@RequestHeader String token) {
-		return noteService.geAllTrash(token);
+	public Response getAllTrash(@RequestHeader String token) {
+		return noteService.getAllTrash(token);
 	}
 
-	@GetMapping("/reminder")
-	public Response addReminder(@RequestHeader String token, @RequestHeader int note_id,@RequestHeader String reminderdate) {
-		return noteService.reminder(token, note_id, reminderdate);
+
+	@PutMapping("/addreminder")
+	public Response addReminder(@Valid @RequestBody DateDto datedto,@RequestHeader String token) {
+		return noteService.reminder(datedto,token);
 	}
 
 	@PutMapping("/editReminder")
-	public Response editReminder(@RequestHeader String token, @RequestHeader int note_id,@RequestHeader String reminderdate) {
-		return noteService.editReminder(token, note_id,reminderdate);
+	public Response editReminder(@Valid @RequestBody DateDto datedto,@RequestHeader String token) {
+		return noteService.editReminder(datedto,token);
 	}
 
 	@PutMapping("/deleteReminder")
-	public Response deleteReminder(@RequestHeader String token, @RequestHeader int note_id,@RequestHeader String reminderdate) {
-		return noteService.deleteReminder(token, note_id ,reminderdate);
+	public Response deleteReminder(@RequestHeader int note_id,@RequestHeader String token) {
+		return noteService.deleteReminder(note_id,token);
 	}
 
 	@PutMapping("/collaborator")
@@ -89,6 +93,16 @@ public class NoteController {
 	@GetMapping("/geAllCollaborated")
 	public Response getCollaborator(@RequestHeader String token, @RequestHeader int noteid) {
 		return noteService.getCollaborated(token,noteid);
+	}
+	@GetMapping("/sortByName")
+	public  Response sortByTitle(@RequestHeader String token)
+	{
+		 return  noteService.sortByTitle(token);
+	}
+	@GetMapping("/sortByDscription")
+	public  Response sortDscription(@RequestHeader String token)
+	{
+		 return  noteService.sortByDscription(token);
 	}
 
 }
