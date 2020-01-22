@@ -3,9 +3,12 @@ package com.bridgelabz.googlekeep.utility;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import org.springframework.stereotype.Component;
 import com.bridgelabz.googlekeep.CustomException.CustomException;
+import com.bridgelabz.googlekeep.model.UserLabel;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -49,13 +52,13 @@ public class JwtUtil {
 
 	public String validateToken(String token) {
 		String username = null;
-		try {
-			isExpired(token); // check first token expired or not
-			username = extractUsername(token);
-		} catch (Exception e) {
 
-			throw new CustomException.InvalidToken("Token is invalid------------------------------------");
+		isExpired(token);														// check first token expired or not
+		username = extractUsername(token);
+		if (username == null) {
+			throw new CustomException.InvalidToken("Invalid Token");
 		}
+
 		return (username);
 	}
 
@@ -65,5 +68,13 @@ public class JwtUtil {
 			throw new CustomException.TokenExpired("your token is expired");
 		}
 	}
+	
+	public void checkLabel(UserLabel userlabel) {
+		 if(userlabel==null)
+	        {
+	       	 throw new CustomException.InvalidLabelId("invalid label id");
+	        }
+	}
+	
 
 }

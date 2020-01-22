@@ -2,6 +2,18 @@ package com.bridgelabz.googlekeep.CustomException;
 
 public class CustomException {
 
+	public static class InvalidLabelId extends RuntimeException {
+          /**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public InvalidLabelId(String message) {
+
+        	  super(message);
+		}
+	}
+
 	public static class UserNotExistException extends RuntimeException {
 		/**
 		 * 

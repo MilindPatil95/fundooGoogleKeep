@@ -81,6 +81,7 @@ public class Message {
 	
 	public static final String USER_NOT_EXIST = "User not Exist";
 	public static final String SORTED_NOTE = "All notes are soted successfully";
+	public static final String INVALID_LABEL = "Invalid Label";
 	
 	
 	

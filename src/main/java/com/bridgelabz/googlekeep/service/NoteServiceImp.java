@@ -39,8 +39,10 @@ import com.bridgelabz.googlekeep.utility.Message;
 public class NoteServiceImp implements INoteService {
 	@Autowired
 	NoteRepository noteRepository;
+
 	@Autowired
 	UserServiceImp userService;
+
 	@Autowired
 	UserRepository userRepository;
 	@Autowired
@@ -105,7 +107,6 @@ public class NoteServiceImp implements INoteService {
 			if (note.isArchive() == false) {
 				if (note.isTrash() == false) {
 					objSotedNote.setNote(note);
-					@SuppressWarnings("unchecked")
 					List<UserLabel> list1 = (List<UserLabel>) getAllNoteLabels(token, note.getNoteId()).getObj();// add
 					objSotedNote.setList(list1); // add UserLabel
 					List<Collaborator> collboratorlist = collaboratorRepository.findAllByNoteid(note.getNoteId());
@@ -290,7 +291,7 @@ public class NoteServiceImp implements INoteService {
 			Date systemdate = (Date) datelist.get(0);
 			Date userdate = (Date) datelist.get(1);
 			if (userdate.after(systemdate)) {
-				Note note =new Note();
+				Note note = new Note();
 				note.setNoteId(datedto.getNoteid());
 				note.setReminder(systemdate.toString());
 				noteRepository.save(note);
@@ -311,12 +312,12 @@ public class NoteServiceImp implements INoteService {
 	@Override
 	public Response editReminder(DateDto datedto, String token) {
 		List<Object> datelist = getDates(datedto.getReminderdate());
-		userService.isUser(token);		
+		userService.isUser(token);
 		checkNote(datedto.getNoteid());
 		Date systemdate = (Date) datelist.get(0);
 		Date userdate = (Date) datelist.get(1);
 		if (userdate.after(systemdate)) {
-			Note note=new Note();
+			Note note = new Note();
 			note.setNoteId(datedto.getNoteid());
 			note.setReminder(datedto.getReminderdate());
 			noteRepository.save(note);
@@ -426,38 +427,6 @@ public class NoteServiceImp implements INoteService {
 	}
 
 	/**
-	 * @purpose : To give invalid not response
-	 * @param : -
-	 * @return : Response Type
-	 */
-
-	@SuppressWarnings("unused")
-
-	/**
-	 * @purpose : To give empty collaborator list response
-	 * @param : -
-	 * @return : Response Type
-	 */
-	private Response collaboratorEmptyListResponse() {
-		return new Response(Message.STATUS404, Message.COLLABORATOR_NOT_PRESENT, null);
-	}
-
-	/**
-	 * @purpose : To get all Collaborator
-	 * @param : token
-	 * @return : Response Type
-	 */
-
-//	public Response getAllCollaborator(String token) {
-//
-//		List<Collaborator> collaboratelist = collaboratorRepository.findAllByUserid(userService.isUser(token).getId());
-//		if (collaboratelist != null) {
-//			return new Response(Message.STATUS200, Message.COLLABORATE_LIST, collaboratelist);
-//		}
-//		return new Response(Message.STATUS200, Message.COLLABORATE_LIST_IS_EMPTY, null);
-//	}
-
-	/**
 	 * @purpose : To get all notes labels
 	 * @param : note id
 	 * @param : token
@@ -481,6 +450,10 @@ public class NoteServiceImp implements INoteService {
 		return new Response(Message.STATUS200, Message.LABEL_NOT_FOUND, list);
 	}
 
+	/**
+	 * @purpose : To get current date in dd-MM-yyyy format
+	 * @return  : String
+	 */
 	private String currentDate() {
 		return LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")).toString();
 	}
@@ -490,24 +463,30 @@ public class NoteServiceImp implements INoteService {
 	 * @param userdate : store date
 	 * @return : Object type list
 	 */
-	public List<Object> getDates(String userdate) {
+	public List<Object> getDates(String userdate)   {
 		Date systemdate = null;
 		Date reminderdate = null;
-		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-mm-yyyy");
 		try {
-			systemdate = simpleDateFormat.parse(currentDate());
-			System.out.println(systemdate);
-			reminderdate = simpleDateFormat.parse(userdate);
-			System.out.println(reminderdate);
-		} catch (Exception e) {
-			// invalideDateResponse();
+		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-mm-yyyy");
+		systemdate = simpleDateFormat.parse(currentDate());
+		System.out.println(systemdate);
+		reminderdate = simpleDateFormat.parse(userdate);
+		}catch(Exception e)
+		{
+			
 		}
+		System.out.println(reminderdate);
 		List<Object> list = new ArrayList<Object>();
 		list.add(systemdate);
 		list.add(reminderdate);
 		return list;
 	}
 
+	/**
+	 * @purpose     :To check User By Email id
+	 * @param email : string tyope
+	 * @return      : User type
+	 */
 	public User checkByUserByEmailId(String email) {
 		User user = userRepository.findByEmail(email);
 		if (user == null) {
@@ -516,18 +495,30 @@ public class NoteServiceImp implements INoteService {
 		return user;
 	}
 
+	/**
+	 * @purpose     :To sort notes by title
+	 * @param token : String type
+	 * @return      :
+	 */
 	@SuppressWarnings("unchecked")
 	public Response sortByTitle(String token) {
 		userService.isUser(token);
 		List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
 		System.out.println(list);
 		try {
-			list = list.stream().sorted((list1, list2) -> list1.getNote().getTitle().compareTo(list2.getNote().getTitle())).collect(Collectors.toList());
+			list = list.stream()
+					.sorted((list1, list2) -> list1.getNote().getTitle().compareTo(list2.getNote().getTitle()))
+					.collect(Collectors.toList());
 		} catch (Exception e) {
 			throw new CustomException.EmptyNoteList("notes list is empty");
 		}
 		return new Response(Message.STATUS200, Message.SORTED_NOTE, list);
 	}
+	/**
+	 * @purpose     : To sort notes by description
+	 * @param token : String type
+	 * @return      : R
+	 */
 
 	@SuppressWarnings("unchecked")
 	public Response sortByDscription(String token) {

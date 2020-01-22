@@ -40,6 +40,12 @@ public class GlobleExceptionHandler
 	  return new Response(Message.STATUS200, Message.USER_NOT_EXIST,null);	
 			  
 	}
+	@ExceptionHandler(CustomException.InvalidLabelId.class)
+	public Response invalidToken()
+	{
+		return new Response(Message.STATUS200, Message.INVALID_LABEL, null);
+	}
+}
   
 	
-}
+

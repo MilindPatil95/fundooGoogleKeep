@@ -2,6 +2,7 @@ package com.bridgelabz.googlekeep.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.modelmapper.ModelMapper;
@@ -9,6 +10,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import com.bridgelabz.googlekeep.CustomException.CustomException;
 import com.bridgelabz.googlekeep.model.NoteLabel;
 import com.bridgelabz.googlekeep.model.User;
 import com.bridgelabz.googlekeep.model.UserLabel;
@@ -45,6 +47,8 @@ public class LabelServiceImp implements ILabelService {
 	public Response addLabelToNote(int noteid, int labelid, String token) {
 		userService.isUser(token);
 		noteService.checkNote(noteid);
+		Optional<UserLabel> label = labelRepository.findById(labelid);
+		jwtUtil.checkLabel(label.get());
 		NoteLabel notelabel = new NoteLabel();
 		notelabel.setNoteid(noteid);
 		notelabel.setLabelid(labelid);
@@ -69,12 +73,6 @@ public class LabelServiceImp implements ILabelService {
 	}
 
 	/**
-	 * @purpose :To get User detail
-	 * @param :token
-	 * @return :Respose type
-	 */
-
-	/**
 	 * @purpose :To delete Label
 	 * @param :token
 	 * @param :id
@@ -82,18 +80,16 @@ public class LabelServiceImp implements ILabelService {
 	 */
 	public Response deleteLabel(String token, int id) {
 		User user = userService.isUser(token);
-
+		Optional<UserLabel> label = labelRepository.findById(id);
+		jwtUtil.checkLabel(label.get());
 		List<UserLabel> list = labelRepository.findAllByUserId(user.getId());
 		if (list != null) {
-			try {
-				UserLabel label1 = list.stream().filter(e -> e.getLabel_id() == id).collect(Collectors.toList()).get(0);
-				labelRepository.deleteById(label1.getLabel_id());
-				return new Response(Message.STATUS200, Message.LABEL_DELETED, null);
-			} catch (Exception e) {
-				return new Response(Message.STATUS403, Message.INVALID_ID, null);
-			}
-		} else
-			return new Response(Message.STATUS404, Message.LABEL_NOT_FOUND, null);
+			UserLabel label1 = list.stream().filter(e -> e.getLabel_id() == id).collect(Collectors.toList()).get(0);
+			labelRepository.deleteById(label1.getLabel_id());
+			return new Response(Message.STATUS200, Message.LABEL_DELETED, null);
+		} else {
+			return new Response(Message.STATUS403, Message.LABEL_NOT_FOUND, null);
+		}
 
 	}
 
@@ -105,24 +101,25 @@ public class LabelServiceImp implements ILabelService {
 	 */
 	public Response editLabel(String token, int id, String name) {
 		User user = userService.isUser(token);
+		Optional<UserLabel> labellist = labelRepository.findById(id);
+		jwtUtil.checkLabel(labellist.get());
 		List<UserLabel> list = labelRepository.findAllByUserId(user.getId());
 		if (list != null) {
-			try {
-				List<Object> editlabellist = new ArrayList<>();
-				UserLabel label = list.stream().filter(e -> e.getLabel_id() == id).collect(Collectors.toList()).get(0);
-				label.setLabelname(name);
-				labelRepository.save(label);
-				editlabellist.add(label);
-				return new Response(Message.STATUS200, Message.LABEL_DELETED, editlabellist);
-			} catch (Exception e) {
-				return new Response(Message.STATUS403, Message.INVALID_ID, null);
-			}
-		} else
-			return new Response(Message.STATUS404, Message.LABEL_NOT_FOUND, null);
+			List<Object> editlabellist = new ArrayList<>();
+			UserLabel label = list.stream().filter(e -> e.getLabel_id() == id).collect(Collectors.toList()).get(0);
+			label.setLabelname(name);
+			labelRepository.save(label);
+			editlabellist.add(label);
+			return new Response(Message.STATUS200, Message.LABEL_EDIT, editlabellist);
+		} else {
+			return new Response(Message.STATUS403, Message.LABEL_NOT_FOUND, null);
+		}
 
 	}
 
 	/**
+	 * SS
+	 * 
 	 * @purpose :To get all Labels of user
 	 * @param :token
 	 * @return :Respose type
@@ -130,7 +127,6 @@ public class LabelServiceImp implements ILabelService {
 	public Response getUserLabel(String token) {
 		User user = userService.isUser(token);
 		if (user != null) {
-
 			List<UserLabel> labellist = labelRepository.findAllByUserId(user.getId());
 			return new Response(Message.STATUS200, Message.ALL_LABLE, labellist);
 		}
