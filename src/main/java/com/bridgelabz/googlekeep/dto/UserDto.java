@@ -4,15 +4,15 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.Pattern;
 
 public class UserDto {
-    @NotEmpty
+    @NotEmpty(message = " user name should not be empty")
 	private String name;
-    @NotEmpty
+    @NotEmpty(message = "user addres should not be empty" )
 	private String address;
-    @Pattern(regexp = "\\d{10}")
+    @Pattern(regexp = "\\d{10}",message = "mobile number should be 10 digit")
 	private String mobile_no;
-    @Pattern(regexp = "^(?=.*\\d).{4,8}$")
+    @Pattern(regexp = "^(?=.*\\d).{4,8}$",message = "invalid password")
 	private String password;
-    @Pattern(regexp = "^\\w+[\\w-\\.]*\\@\\w+((-\\w+)|(\\w*))\\.[a-z]{2,3}$")
+    @Pattern(regexp = "^\\w+[\\w-\\.]*\\@\\w+((-\\w+)|(\\w*))\\.[a-z]{2,3}$", message = "Invalid email id")
 	private String email;		
 	public String getEmail() {
 		return email;

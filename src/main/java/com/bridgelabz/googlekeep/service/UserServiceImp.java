@@ -3,6 +3,7 @@ package com.bridgelabz.googlekeep.service;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,7 @@ import com.bridgelabz.googlekeep.utility.MailUtility;
 import com.bridgelabz.googlekeep.utility.Message;
 
 @Service
-public class UserServiceImp implements IUserService{
+public class UserServiceImp implements IUserService {
 
 	JwtUtil jwtUtil = new JwtUtil();
 	ModelMapper mappper = new ModelMapper();
@@ -36,7 +37,7 @@ public class UserServiceImp implements IUserService{
 	 * @purpose : To get list users
 	 * @return : List<User>
 	 */
-   @Override
+	@Override
 	public Response getUsers() {
 		List<Object> list = new ArrayList<Object>();
 		userRepository.findAll().forEach(list::add);
@@ -47,9 +48,9 @@ public class UserServiceImp implements IUserService{
 	 * @purpose : To add user
 	 * @param userDto : store credential data
 	 */
-   @Override
+	@Override
 	public Response addUser(UserDto userDto) {
-	   System.out.println(userDto);
+		System.out.println(userDto);
 		User user = mappper.map(userDto, User.class);
 		user.setPassword(passwordEncoder.encode(userDto.getPassword()));
 		System.out.println("encoded");
@@ -64,20 +65,20 @@ public class UserServiceImp implements IUserService{
 	/**
 	 * @purpose : remove data
 	 * @param id :
-	 * @return 
+	 * @return
 	 */
-  @Override
-	public Response removeUser(String token,int id) {
-        try {        
-		  userRepository.deleteById(id);
-        }
-        catch(Exception e)
-        {
-        	throw new CustomException.UserNotExistException("User Not Exist");
-        }
-        return new Response(Message.STATUS200,Message.USER_REMOVE,null);
+	@Override
+	public Response removeUser(String token, int id) {
+	     isUser(token);
+			User user = userRepository.findById(id).orElseThrow(()-> new CustomException.UserNotExistException("user Not Exist"));
+			if (jwtUtil.checkUserById(user)) {
+				userRepository.deleteById(id);
+				return new Response(Message.STATUS200, Message.USER_REMOVE, null);
+			}else return new Response(Message.STATUS200, Message.USER_NOT_FOUND, null);
+			
+		
+					
 	}
-
 	
 
 	/**
@@ -85,9 +86,9 @@ public class UserServiceImp implements IUserService{
 	 * 
 	 * @param id : store int type data
 	 * 
-	 *       
+	 * 
 	 */
-   @Override
+	@Override
 	public boolean isVerify(String email) {
 		User user = userRepository.findByEmail(email);
 		if (user != null) {
@@ -108,7 +109,7 @@ public class UserServiceImp implements IUserService{
 	 * @param logindto : store credential data
 	 * @return : string
 	 */
-   @Override
+	@Override
 	public Response loginVerification(LoginDto LoginDto) // dto stands for data transfer object
 	{
 		User user = userRepository.findByEmail(LoginDto.getEmail());
@@ -131,22 +132,17 @@ public class UserServiceImp implements IUserService{
 		return new Response(Message.STATUS200, Message.INVALID, null);
 	}
 
-	/**
-	 * @purpose : get user
-	 * @param token : store string type token data
-	 * @return : User
-	 */
 
 	/**
-	 * @purpose             : To update database
+	 * @purpose : To update database
 	 * @param token         : store string type data
 	 * @param userUpdateDto : store credential data
 	 * @return : string
 	 */
-   @Override
+	@Override
 	public Response update(String token, UserDto userDto) {
 		User user = isUser(token);
-		if (user != null) {	
+		if (user != null) {
 			if (passwordEncoder.matches(userDto.getPassword(), user.getPassword())) {
 				user.setName(userDto.getName());
 				user.setAddress(userDto.getAddress());
@@ -165,7 +161,7 @@ public class UserServiceImp implements IUserService{
 	 * @param forgetPassworddto : store credential data
 	 * @return : string
 	 */
-   @Override
+	@Override
 	public Response resetPassword(String token, ResetPasswordDto forgetPassworddto) {
 		User user = isUser(token);
 		if (forgetPassworddto.getPassword().equals(forgetPassworddto.getConfirmPassword())) {
@@ -181,19 +177,19 @@ public class UserServiceImp implements IUserService{
 	 * @param emaildto : store credential data
 	 * @return : string
 	 */
-   @Override
+	@Override
 	public User isUser(String token) {
 		String email = jwtUtil.validateToken(token);
 		return userRepository.findByEmail(email);
 	}
 
-   @Override
+	@Override
 	public Response getUser(String token) {
-		List<Object> list = new ArrayList<>();
-		list.add(isUser(token));
-		return new Response(Message.STATUS200, Message.USER_DATA, list);
+		User user = isUser(token);
+		return new Response(Message.STATUS200, Message.USER_DATA, user);
 	}
-   @Override
+
+	@Override
 	public Response forgetPasssword(String email) {
 		boolean status = isVerify(email);
 		if (status) {

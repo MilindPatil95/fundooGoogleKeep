@@ -1,9 +1,14 @@
 package com.bridgelabz.googlekeep.dto;
+
+import javax.validation.constraints.NotEmpty;
+
 public class NoteDto 
-{
+{     @NotEmpty(message = "Title Should not be empty") 
 	  private String title;
+      @NotEmpty(message = "Description should not be empty") 
 	  private String desctiption;
-	  private String color;
+	  @NotEmpty(message = "Color field shuld not be empty")
+      private String color;
 	public String getTitle() {
 		return title;
 	}

@@ -2,12 +2,18 @@ package com.bridgelabz.googlekeep.utility;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import com.bridgelabz.googlekeep.CustomException.CustomException;
+import com.bridgelabz.googlekeep.model.Note;
+import com.bridgelabz.googlekeep.model.User;
 import com.bridgelabz.googlekeep.model.UserLabel;
+import com.bridgelabz.googlekeep.repository.UserRepository;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -17,7 +23,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 public class JwtUtil {
 
 	private String SECRET_KEY = "secret";
-
+    
 	public String extractUsername(String token) {
 		return extractClaim(token, Claims::getSubject);
 	}
@@ -43,7 +49,13 @@ public class JwtUtil {
 		Map<String, Object> claims = new HashMap<>();
 		return createToken(claims, username);
 	}
+	
 
+	public Boolean checkUserById(User user) {
+		if (user == null) 
+			return false; 
+		return true;
+	}
 	private String createToken(Map<String, Object> claims, String username) {
 		return Jwts.builder().setClaims(claims).setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))
 				.setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 10))
@@ -52,29 +64,37 @@ public class JwtUtil {
 
 	public String validateToken(String token) {
 		String username = null;
-
-		isExpired(token);														// check first token expired or not
-		username = extractUsername(token);
-		if (username == null) {
-			throw new CustomException.InvalidToken("Invalid Token");
+		try {
+			username = extractUsername(token);	
+		}catch (Exception e) {
+			throw new CustomException.InvalidTokenException("Invalid Token");
+			}
+		
+		if (isTokenExpired(token)) {
+			throw new CustomException.TokenExpiredException("your token is expired");
 		}
+			
+		
 
 		return (username);
 	}
 
-	public void isExpired(String token) {
-
-		if (isTokenExpired(token)) {
-			throw new CustomException.TokenExpired("your token is expired");
+	public void checkLabel(UserLabel userlabel) {
+		if (userlabel == null) {
+			throw new CustomException.InvalidLabelIdException("invalid label id");
 		}
 	}
-	
-	public void checkLabel(UserLabel userlabel) {
-		 if(userlabel==null)
-	        {
-	       	 throw new CustomException.InvalidLabelId("invalid label id");
-	        }
+
+	public void checkLabelList(List<UserLabel> userlabellist) {
+		if (userlabellist == null) {
+			throw new CustomException.InvalidLabelListException("invalid label list");
+		}
 	}
-	
+
+	public void checkNoteList(List<Note> notelist) {
+		if (notelist == null) {
+			throw new CustomException.InvalidLabelListException("invalid note list");
+		}
+	}
 
 }

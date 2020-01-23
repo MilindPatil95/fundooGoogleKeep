@@ -2,22 +2,8 @@ package com.bridgelabz.googlekeep.CustomException;
 
 public class CustomException {
 
-	public static class InvalidLabelId extends RuntimeException {
-          /**
-		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
-		public InvalidLabelId(String message) {
-
-        	  super(message);
-		}
-	}
-
 	public static class UserNotExistException extends RuntimeException {
-		/**
-		 * 
-		 */
+
 		private static final long serialVersionUID = 1L;
 
 		public UserNotExistException(String message) {
@@ -25,54 +11,97 @@ public class CustomException {
 		}
 	}
 
-	public static class EmptyNote extends RuntimeException {
+	public static class EmptyUserListException extends RuntimeException {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public EmptyUserListException(String message) {
+			super(message);
+		}
+	}
+
+	public static class InvalidLabelIdException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		public InvalidLabelIdException(String message) {
+
+			super(message);
+		}
+	}
+
+	public static class InvalidLabelListException extends RuntimeException {
+		private static final long serialVersionUID = 1L;
+
+		public InvalidLabelListException(String message) {
+
+			super(message);
+		}
+	}
+
+	public static class InvalidNoteException extends RuntimeException {
 
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public EmptyNote(String message) {
+		public InvalidNoteException(String message) {
 			super(message);
 		}
 
 	}
 
-	public static class EmptyNoteList extends RuntimeException {
+	public static class EmptyNoteListException extends RuntimeException {
 
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public EmptyNoteList(String message) {
+		public EmptyNoteListException(String message) {
 			super(message);
 		}
 
 	}
 
-	public static class TokenExpired extends RuntimeException {
+	public static class TokenExpiredException extends RuntimeException {
 		/**
 		 * 
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public TokenExpired(String message) {
+		public TokenExpiredException(String message) {
 			super(message);
 		}
 	}
 
-	public static class InvalidToken extends RuntimeException {
-		/**
-		 * 
-		 */
+	public static class InvalidTokenException extends RuntimeException {
+
 		private static final long serialVersionUID = 1L;
 
-		public InvalidToken(String message) {
+		public InvalidTokenException(String message) {
 			super(message);
 		}
 	}
 
-	
+	public static class InvaidLabelException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		public InvaidLabelException(String message) {
+			super(message);
+		}
+	}
+
+	public static class EmptyLabelListException extends RuntimeException {
+
+		private static final long serialVersionUID = 1L;
+
+		public EmptyLabelListException(String message) {
+			super(message);
+		}
+	}
 
 }

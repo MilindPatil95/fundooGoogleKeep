@@ -46,8 +46,9 @@ public class LabelServiceImp implements ILabelService {
 	 */
 	public Response addLabelToNote(int noteid, int labelid, String token) {
 		userService.isUser(token);
-		noteService.checkNote(noteid);
+		noteService.checkNoteByNoteId(noteid);
 		Optional<UserLabel> label = labelRepository.findById(labelid);
+		
 		jwtUtil.checkLabel(label.get());
 		NoteLabel notelabel = new NoteLabel();
 		notelabel.setNoteid(noteid);
