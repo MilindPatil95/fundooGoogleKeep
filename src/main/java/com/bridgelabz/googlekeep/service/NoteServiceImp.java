@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -14,6 +15,7 @@ import javax.validation.constraints.Pattern;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.bridgelabz.googlekeep.CustomException.CustomException;
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
@@ -137,10 +139,10 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response update(String token, NoteDto notedto, int note_id) {
-		Note note = checkNoteByNoteId(note_id);
+	 checkNoteByNoteId(note_id);
+	 Note note =mapper.map(notedto, Note.class);
 		userService.isUser(token);
 		noteRepository.save(note);
-		System.out.println("note update");
 		return new Response(Message.STATUS200, Message.NOTE_UPDATED, null);
 
 	}
@@ -534,6 +536,8 @@ public class NoteServiceImp implements INoteService {
 			Note note = noteRepository.findById(note_id).orElseThrow(()->new CustomException.InvalidNoteException("invalid note id"));		 
 			return note;
 	}
+
+	
 
 
 }

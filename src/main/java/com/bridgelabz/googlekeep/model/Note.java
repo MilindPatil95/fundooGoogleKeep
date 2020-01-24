@@ -4,6 +4,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.validation.constraints.NotEmpty;
 
 @Entity
 public class Note
@@ -20,7 +21,7 @@ public class Note
   private boolean isTrash;
   private int userId;
   
-  @Override
+ @Override
 public String toString() {
 	return "Note [noteId=" + noteId + ", title=" + title + ", desctiption=" + desctiption + ", reminder=" + reminder
 			+ ", color=" + color + ", isArchive=" + isArchive + ", isPin=" + isPin + ", isTrash=" + isTrash

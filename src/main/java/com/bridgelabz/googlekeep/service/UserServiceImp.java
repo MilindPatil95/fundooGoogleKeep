@@ -1,15 +1,14 @@
 package com.bridgelabz.googlekeep.service;
-
+import java.io.File;
 import java.util.ArrayList;
-
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
-
+import java.util.Map;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
+import org.springframework.web.multipart.MultipartFile;
 import com.bridgelabz.googlekeep.CustomException.CustomException;
 import com.bridgelabz.googlekeep.dto.LoginDto;
 import com.bridgelabz.googlekeep.dto.ResetPasswordDto;
@@ -20,6 +19,8 @@ import com.bridgelabz.googlekeep.response.Response;
 import com.bridgelabz.googlekeep.utility.JwtUtil;
 import com.bridgelabz.googlekeep.utility.MailUtility;
 import com.bridgelabz.googlekeep.utility.Message;
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
 
 @Service
 public class UserServiceImp implements IUserService {
@@ -27,7 +28,7 @@ public class UserServiceImp implements IUserService {
 	JwtUtil jwtUtil = new JwtUtil();
 	ModelMapper mappper = new ModelMapper();
 	@Autowired
-	MailUtility mailUtility;
+	MailUtility mailUtility;                                               
 	@Autowired
 	private UserRepository userRepository;
 	@Autowired
@@ -47,6 +48,7 @@ public class UserServiceImp implements IUserService {
 	/**
 	 * @purpose : To add user
 	 * @param userDto : store credential data
+	 * @retrun : Response type
 	 */
 	@Override
 	public Response addUser(UserDto userDto) {
@@ -63,23 +65,21 @@ public class UserServiceImp implements IUserService {
 	}
 
 	/**
-	 * @purpose : remove data
-	 * @param id :
-	 * @return
+	 * @purpose : To remove details
+	 * @param id : int type
+	 * @return  :Response type
 	 */
 	@Override
 	public Response removeUser(String token, int id) {
-	     isUser(token);
-			User user = userRepository.findById(id).orElseThrow(()-> new CustomException.UserNotExistException("user Not Exist"));
-			if (jwtUtil.checkUserById(user)) {
-				userRepository.deleteById(id);
-				return new Response(Message.STATUS200, Message.USER_REMOVE, null);
-			}else return new Response(Message.STATUS200, Message.USER_NOT_FOUND, null);
-			
-		
-					
+		isUser(token);
+		User user = userRepository.findById(id).orElseThrow(() -> new CustomException.UserNotExistException("user Not Exist"));
+		if (jwtUtil.checkUserById(user)) {
+			userRepository.deleteById(id);
+			return new Response(Message.STATUS200, Message.USER_REMOVE, null);
+		} else
+			return new Response(Message.STATUS200, Message.USER_NOT_FOUND, null);
+
 	}
-	
 
 	/**
 	 * purpose :search user in repository by id
@@ -98,7 +98,7 @@ public class UserServiceImp implements IUserService {
 			String mailsender = "forgotbridge70@gmail.com";
 			String text = "token=" + token;
 			System.out.println("mail sending......in....progressssssssssss");
-			mailUtility.accountVerification(mailsender, recieveremail, subject, text);
+			mailUtility.accountVerification(mailsender, recieveremail, subject, text);   //send mail for verification
 			return true;
 		} else
 			return false;
@@ -107,10 +107,10 @@ public class UserServiceImp implements IUserService {
 	/**
 	 * @purpose : login verification
 	 * @param logindto : store credential data
-	 * @return : string
+	 * @return : Response type
 	 */
 	@Override
-	public Response loginVerification(LoginDto LoginDto) // dto stands for data transfer object
+	public Response loginVerification(LoginDto LoginDto)                             // dto stands for data transfer object
 	{
 		User user = userRepository.findByEmail(LoginDto.getEmail());
 		if (user != null) {
@@ -132,12 +132,11 @@ public class UserServiceImp implements IUserService {
 		return new Response(Message.STATUS200, Message.INVALID, null);
 	}
 
-
 	/**
 	 * @purpose : To update database
 	 * @param token         : store string type data
 	 * @param userUpdateDto : store credential data
-	 * @return : string
+	 * @return : Response type
 	 */
 	@Override
 	public Response update(String token, UserDto userDto) {
@@ -159,12 +158,12 @@ public class UserServiceImp implements IUserService {
 	 * @purpose : To change password
 	 * @param token             : store string type data
 	 * @param forgetPassworddto : store credential data
-	 * @return : string
+	 * @return : Response type
 	 */
 	@Override
 	public Response resetPassword(String token, ResetPasswordDto forgetPassworddto) {
 		User user = isUser(token);
-		if (forgetPassworddto.getPassword().equals(forgetPassworddto.getConfirmPassword())) {
+		if (forgetPassworddto.getPassword().equals(forgetPassworddto.getConfirmPassword())) {        //check user passwords are equals or not 
 			user.setPassword(passwordEncoder.encode(forgetPassworddto.getPassword()));
 			userRepository.save(user);
 			return new Response(Message.STATUS200, Message.PASSWORD_UDATED, null);
@@ -173,9 +172,9 @@ public class UserServiceImp implements IUserService {
 	}
 
 	/**
-	 * @purpose : to verify email
-	 * @param emaildto : store credential data
-	 * @return : string
+	 * @purpose : to check user
+	 * @param token : string type
+	 * @return : Response type
 	 */
 	@Override
 	public User isUser(String token) {
@@ -183,19 +182,57 @@ public class UserServiceImp implements IUserService {
 		return userRepository.findByEmail(email);
 	}
 
+	/**
+	 * @purpose      : get user details by token
+	 * @param token  : String type 
+	 * @return       : Response type
+	 */
 	@Override
 	public Response getUser(String token) {
-		User user = isUser(token);
+		User user = isUser(token);      
 		return new Response(Message.STATUS200, Message.USER_DATA, user);
 	}
 
+	/**
+	 *@purpose      : To verify email id for reset password 
+	 *@param  email : String type
+	 *@return       : Response type
+	 */
 	@Override
 	public Response forgetPasssword(String email) {
-		boolean status = isVerify(email);
+		boolean status = isVerify(email);                                                  //verify  email id
 		if (status) {
 			return new Response(Message.STATUS200, Message.TOKEN_GENRATED, null);
 		}
 		return new Response(Message.STATUS200, Message.INVALID_EMAILID, null);
+	}
+
+	/**
+	 * @purpose     : To upload file on Cloudinary and save Cloudinary path on database
+	 * @param file  : get MultipartFile 
+	 * @param token : string type
+	 * @return      : Response type
+	 */
+	public Response saveProfile(MultipartFile file, String token) { 		
+		User user = isUser(token);
+		File fileobj = new File(file.getOriginalFilename());                   //get file name from  file object(Multipart file)
+		                                                                      // and create file
+
+		Map<String, String> map = new HashMap<>();
+		map.put("cloud_name", "del7lj7f0");                                   // create map objec and set cloud name,api key, api secret key
+		map.put("api_key", "398587234215416");
+		map.put("api_secret", "107j26oL6ggAo4_mxjWyUCJOGzI");
+		Cloudinary cloudinary = new Cloudinary(map);                         //set map object in cloudinary constructor
+		Map<?,?> uploadedResult=null;
+		try {
+			uploadedResult =cloudinary.uploader().upload(fileobj, ObjectUtils.emptyMap());   
+		} catch (Exception e) {
+			throw new CustomException.ProfileNotSave("profile not uploaded");
+		}
+		user.setProfilepath(uploadedResult.get("secure_url").toString());     // get secure url from  uploaded result and set into user object
+		userRepository.save(user);
+
+		return new Response(Message.STATUS200, Message.PROFILE_SAVE_SUCCESSFULLY, null);
 	}
 
 }

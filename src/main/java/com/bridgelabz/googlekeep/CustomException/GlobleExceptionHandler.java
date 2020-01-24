@@ -55,6 +55,10 @@ public class GlobleExceptionHandler
 	{
 		 return new Response(Message.STATUS200,e.getBindingResult().getFieldError().getDefaultMessage(), null);
 	}
+	@ExceptionHandler(CustomException.ProfileNotSave.class)
+	public Response profileNotSaveResponse() {
+            return new Response(Message.STATUS200,Message.PROFILE_NOT_SAVE, null);
+	}
 	
 }
   

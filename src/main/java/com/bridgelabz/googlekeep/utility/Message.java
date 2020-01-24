@@ -83,6 +83,8 @@ public class Message {
 	public static final String SORTED_NOTE = "All notes are soted successfully";
 	public static final String INVALID_LABEL = "Invalid Label";
 	public static final String LABELS_NOT_FOUND = "Label not found";
+	public static final String PROFILE_SAVE_SUCCESSFULLY = "Profile save successfully";
+	public static final String PROFILE_NOT_SAVE = "profile not save";
 
 	
 	

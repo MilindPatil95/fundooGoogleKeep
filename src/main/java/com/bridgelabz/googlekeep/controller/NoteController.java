@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
 import com.bridgelabz.googlekeep.dto.DateDto;
@@ -25,7 +28,7 @@ public class NoteController {
 	NoteServiceImp noteService;
 
 	@PostMapping("/create")
-	public Response createNote(@RequestBody NoteDto note, @RequestHeader String token) {
+	public Response createNote(@Valid @RequestBody NoteDto note, @RequestHeader String token) {
 		return noteService.createNote(note, token);
 	}
 
@@ -40,8 +43,8 @@ public class NoteController {
 	}
 
 	@PutMapping("/update")
-	public void updateNote(@RequestHeader String token, @RequestBody NoteDto notedto, @RequestHeader int note_id) {
-		noteService.update(token, notedto, note_id);
+	public Response updateNote(@RequestHeader String token,@Valid @RequestBody NoteDto notedto, @RequestHeader int note_id) {
+		 return noteService.update(token, notedto, note_id);
 	}
 
 	@PutMapping("/pin")
@@ -86,7 +89,7 @@ public class NoteController {
 	}
 
 	@PutMapping("/collaborator")
-	public Response Collaborator(@RequestBody CollaboratorDto collaboratorDto, @RequestHeader String token) {
+	public Response Collaborator(@Valid @RequestBody CollaboratorDto collaboratorDto, @RequestHeader String token) {
 		return noteService.collaborator(collaboratorDto, token);
 	}
 
@@ -104,5 +107,6 @@ public class NoteController {
 	{
 		 return  noteService.sortByDscription(token);
 	}
+	
 
 }

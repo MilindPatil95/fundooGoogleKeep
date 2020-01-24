@@ -2,6 +2,8 @@ package com.bridgelabz.googlekeep.CustomException;
 
 public class CustomException {
 
+	
+
 	public static class UserNotExistException extends RuntimeException {
 
 		private static final long serialVersionUID = 1L;
@@ -102,6 +104,13 @@ public class CustomException {
 		public EmptyLabelListException(String message) {
 			super(message);
 		}
+	}
+	@SuppressWarnings("serial")
+	public static class ProfileNotSave extends RuntimeException {
+		public ProfileNotSave(String message) {
+			super(message);
+		}
+
 	}
 
 }

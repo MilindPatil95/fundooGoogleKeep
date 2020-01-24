@@ -1,4 +1,6 @@
 package com.bridgelabz.googlekeep.controller;
+import java.io.IOException;
+
 import javax.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -7,7 +9,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.bridgelabz.googlekeep.dto.LoginDto;
 import com.bridgelabz.googlekeep.dto.ResetPasswordDto;
 import com.bridgelabz.googlekeep.dto.UserDto;
@@ -58,6 +63,11 @@ public class UserController {
 	public Response removeUser(@RequestHeader String token, @RequestHeader int id)
 	{
 		return userService.removeUser(token,id);
+	}
+	@PutMapping(value ="/uploadprofile",consumes = "multipart/form-data")
+	public Response uploadProfile(@RequestHeader String token, @RequestPart(value = "file")MultipartFile file) throws IOException
+	{
+		return userService.saveProfile(file,token);
 	}
 	
 	

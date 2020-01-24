@@ -15,6 +15,14 @@ public class User {
 	private String mobile_no;
 	private String password;
 	private String email;
+	private String profilepath;
+	
+	public String getProfilepath() {
+		return profilepath;
+	}
+	public void setProfilepath(String profilepath) {
+		this.profilepath = profilepath;
+	}
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", name=" + name + ", address=" + address + ", mobile_no=" + mobile_no + ", password="
