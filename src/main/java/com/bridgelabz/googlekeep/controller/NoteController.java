@@ -1,20 +1,15 @@
 package com.bridgelabz.googlekeep.controller;
 
 import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
 import com.bridgelabz.googlekeep.dto.DateDto;
 import com.bridgelabz.googlekeep.dto.NoteDto;
@@ -48,6 +43,7 @@ public class NoteController {
 	}
 
 	@PutMapping("/pin")
+	@Cacheable(value ="token",key = "#token")
 	public Response pinNote(@RequestHeader String token, @RequestHeader int note_id) {
 		return noteService.pin(token, note_id);
 	}

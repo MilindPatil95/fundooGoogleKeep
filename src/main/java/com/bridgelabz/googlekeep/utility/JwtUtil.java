@@ -22,7 +22,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 @Component
 public class JwtUtil {
 
-	private String SECRET_KEY = "secret";
+	private String SECRET_KEY = "milind";
     
 	public String extractUsername(String token) {
 		return extractClaim(token, Claims::getSubject);

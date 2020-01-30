@@ -1,22 +1,17 @@
 package com.bridgelabz.googlekeep.service;
 
 import java.text.SimpleDateFormat;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import javax.validation.constraints.Pattern;
-
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
 import com.bridgelabz.googlekeep.CustomException.CustomException;
 import com.bridgelabz.googlekeep.dto.CollaboratorDto;
 import com.bridgelabz.googlekeep.dto.DateDto;
@@ -32,6 +27,7 @@ import com.bridgelabz.googlekeep.repository.CollaboratorRepository;
 import com.bridgelabz.googlekeep.repository.LabelRepository;
 import com.bridgelabz.googlekeep.repository.NoteLabelRepository;
 import com.bridgelabz.googlekeep.repository.NoteRepository;
+import com.bridgelabz.googlekeep.repository.RedisRepositoryImpl;
 import com.bridgelabz.googlekeep.repository.UserRepository;
 import com.bridgelabz.googlekeep.response.Response;
 import com.bridgelabz.googlekeep.utility.JwtUtil;
@@ -53,6 +49,8 @@ public class NoteServiceImp implements INoteService {
 	NoteLabelRepository noteLabelRepository;
 	@Autowired
 	LabelRepository userlabelRepository;
+	@Autowired
+	RedisRepositoryImpl redisRepositoryImpl;
 	ModelMapper mapper = new ModelMapper();
 	JwtUtil jwtUtil = new JwtUtil();
 
@@ -64,13 +62,16 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response createNote(NoteDto notedto, String token) {
-		Note note = mapper.map(notedto, Note.class);
-		List<Note> list = new ArrayList<Note>();
-		User user = userService.isUser(token);
-		note.setUserId(user.getId());
-		noteRepository.save(note);
-		list.add(note);
-		return new Response(Message.STATUS200, Message.ADD_NOTE, list);
+		if (redisRepositoryImpl.findUser(token) != null) {                    //Check login user login or not
+			Note note = mapper.map(notedto, Note.class);                         
+			List<Note> list = new ArrayList<Note>();                     
+			User user = userService.isUser(token);                         
+			note.setUserId(user.getId());                                           //set and add note in repository
+			noteRepository.save(note);
+			list.add(note);
+			return new Response(Message.STATUS200, Message.ADD_NOTE, list);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 	}
 
 	/**
@@ -81,14 +82,17 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response deleteNote(String token, int note_id) {
-		
-		Note note = checkNoteByNoteId(note_id);
 		userService.isUser(token);
-		if (note.isTrash()) {
-			noteRepository.delete(note);
-			return new Response(Message.STATUS200, Message.DTELETE_NOTE, null);
+		if (redisRepositoryImpl.findUser(token) != null) {                            //Check login user login or not
+			Note note = checkNoteByNoteId(note_id);                                   //check note present or not
+			userService.isUser(token);
+			if (note.isTrash()) {
+				noteRepository.delete(note);                                          //remove from repository
+				return new Response(Message.STATUS200, Message.DTELETE_NOTE, null);
+			}
+			return new Response(Message.STATUS404, Message.NOTE_NOT_IN_TRASH, null);
 		}
-		return new Response(Message.STATUS404, Message.NOTE_NOT_IN_TRASH, null);
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
@@ -101,33 +105,36 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response getAllNotes(String token) {
-		User user = userService.isUser(token);
-		List<Note> list = new ArrayList<Note>();
-		List<SotedNote> obj = new ArrayList<>();
-		list = noteRepository.findByUserId(user.getId());
-		checkNoteList(list);
-		for (Note note : list) {
-			SotedNote objSotedNote = new SotedNote();
-			if (note.isArchive() == false) {
-				if (note.isTrash() == false) {
-					objSotedNote.setNote(note);
-					List<UserLabel> list1 = (List<UserLabel>) getAllNoteLabels(token, note.getNoteId()).getObj();// add
-					objSotedNote.setList(list1); // add UserLabel
-					List<Collaborator> collboratorlist = collaboratorRepository.findAllByNoteid(note.getNoteId());
-					objSotedNote.setCollboratorlist(collboratorlist);
-					obj.add(objSotedNote);// add collaborator type list
+		if (redisRepositoryImpl.findUser(token) != null) {                               //Check login user login or not
+			User user = userService.isUser(token);														
+			List<Note> list = new ArrayList<Note>();
+			List<SotedNote> obj = new ArrayList<>();
+			list = noteRepository.findByUserId(user.getId());
+			checkNoteList(list);
+			for (Note note : list) {
+				SotedNote objSotedNote = new SotedNote();
+				if (note.isArchive() == false) {                   
+					if (note.isTrash() == false) {                                                         //  set note type
+						objSotedNote.setNote(note);                                          
+						@SuppressWarnings("unchecked")
+						List<UserLabel> list1 = (List<UserLabel>) getAllNoteLabels(token, note.getNoteId()).getObj(); 
+						objSotedNote.setList(list1);                                                                   // add UserLabel
+						List<Collaborator> collboratorlist = collaboratorRepository.findAllByNoteid(note.getNoteId());
+						objSotedNote.setCollboratorlist(collboratorlist);
+						obj.add(objSotedNote);                                                                        // add collaborator type list
+					}
 				}
 			}
+			return new Response(Message.STATUS200, Message.NOTES_RETURN, obj);
 		}
-		return new Response(Message.STATUS200, Message.NOTES_RETURN, obj);
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
-	     public void checkNoteList(List<Note> list) {
-           if(list==null)
-           {
-        	   throw new CustomException.EmptyNoteListException("note list is empty");
-           }
+	public void checkNoteList(List<Note> list) {
+		if (list.isEmpty()) {
+			throw new CustomException.EmptyNoteListException("note list is empty");
+		}
 	}
 
 	/**
@@ -139,11 +146,14 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response update(String token, NoteDto notedto, int note_id) {
-	 checkNoteByNoteId(note_id);
-	 Note note =mapper.map(notedto, Note.class);
-		userService.isUser(token);
-		noteRepository.save(note);
-		return new Response(Message.STATUS200, Message.NOTE_UPDATED, null);
+		if (redisRepositoryImpl.findUser(token) != null) {                                     //Check login user login or not
+			checkNoteByNoteId(note_id);                                                        //check note present or not
+			Note note = mapper.map(notedto, Note.class);
+			userService.isUser(token);                                                         //check user valid or not
+			noteRepository.save(note);                                                         // add note in repository
+			return new Response(Message.STATUS200, Message.NOTE_UPDATED, null);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
@@ -155,40 +165,40 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response pin(String token, int note_id) {
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		checkNoteByNoteId(note_id);
-		List<Collaborator> collaboratorlist = collaboratorRepository.findAllByNoteid(note_id);
-		if (collaboratorlist.isEmpty() == false) {
-			System.out.println("collaborator" + collaboratorlist);
-			System.out.println("inside collaboratorlist");
-			for (Collaborator collaborator : collaboratorlist) {
-				if (collaborator.isPin()) {
-					collaborator.setPin(false);
-					collaboratorRepository.save(collaborator);
+		if (redisRepositoryImpl.findUser(token) != null) {                                    //Check login user login or not
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());          
+			checkNoteList(list);                                                              //check list empty or not
+			checkNoteByNoteId(note_id);
+			List<Collaborator> collaboratorlist = collaboratorRepository.findAllByNoteid(note_id);
+			if (collaboratorlist.isEmpty() == false) {
+				for (Collaborator collaborator : collaboratorlist) {
+					if (collaborator.isPin()) {                                             
+						collaborator.setPin(false);                                          
+						collaboratorRepository.save(collaborator);                            // add collaborator repository
+						return new Response(Message.STATUS200, Message.UNPING, null);
+					} else {
+						collaborator.setPin(true);
+						collaboratorRepository.save(collaborator);
+						return new Response(Message.STATUS200, Message.PING, null);
+					}
+				}
+			} else {
+				Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);       // find note in list
+                 
+				if (note.isPin()) {
+					note.setPin(false);
+					noteRepository.save(note);
 					return new Response(Message.STATUS200, Message.UNPING, null);
 				} else {
-					collaborator.setPin(true);
-					collaboratorRepository.save(collaborator);
+					note.setPin(true);                                                                                 
+					noteRepository.save(note);                                                                    // add note repository
 					return new Response(Message.STATUS200, Message.PING, null);
 				}
 			}
-		} else {
-			Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
-
-			if (note.isPin()) {
-				note.setPin(false);
-				noteRepository.save(note);
-				return new Response(Message.STATUS200, Message.UNPING, null);
-			} else {
-				note.setPin(true);
-				noteRepository.save(note);
-				return new Response(Message.STATUS200, Message.PING, null);
-			}
 		}
-		return null;
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
-
 	/**
 	 * @purpose :archive and archive to note
 	 * @param :token
@@ -197,39 +207,37 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response archive(String token, int note_id) {
+		if (redisRepositoryImpl.findUser(token) != null) {                                      //Check login user login or not
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+			checkNoteByNoteId(note_id);                                                         //check note present or not
+			List<Collaborator> collaboratorlist = collaboratorRepository.findAllByNoteid(note_id);
+			if (collaboratorlist.isEmpty() == false) {
+				for (Collaborator collaborator : collaboratorlist) {
+					if (collaborator.isArchive()) {
+						collaborator.setArchive(false);
+						collaboratorRepository.save(collaborator);                            //add collaborator
+						return new Response(Message.STATUS200, Message.UNARCHIVE, null);
+					} else {
+						collaborator.setArchive(true);
+						collaboratorRepository.save(collaborator);							//add collaborator 
+						return new Response(Message.STATUS200, Message.ARCHIVE, null);
+					}
+				}
+			} else {
+				Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
 
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		checkNoteByNoteId(note_id);
-		List<Collaborator> collaboratorlist = collaboratorRepository.findAllByNoteid(note_id);
-		if (collaboratorlist.isEmpty() == false) {
-			System.out.println("collaborator" + collaboratorlist);
-			System.out.println("inside collaboratorlist");
-			for (Collaborator collaborator : collaboratorlist) {
-				if (collaborator.isArchive()) {
-					collaborator.setArchive(false);
-					collaboratorRepository.save(collaborator);
+				if (note.isArchive()) {
+					note.setArchive(false);
+					noteRepository.save(note);
 					return new Response(Message.STATUS200, Message.UNARCHIVE, null);
 				} else {
-					collaborator.setArchive(true);
-					collaboratorRepository.save(collaborator);
+					note.setArchive(true);
+					noteRepository.save(note);
 					return new Response(Message.STATUS200, Message.ARCHIVE, null);
 				}
 			}
-		} else {
-			Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
-
-			if (note.isArchive()) {
-				note.setArchive(false);
-				noteRepository.save(note);
-				return new Response(Message.STATUS200, Message.UNARCHIVE, null);
-			} else {
-				note.setArchive(true);
-				noteRepository.save(note);
-				return new Response(Message.STATUS200, Message.ARCHIVE, null);
-			}
 		}
-		return null;
-
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 	}
 
 	/**
@@ -239,9 +247,14 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response getAllArchive(String token) {
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		List<Note> list1 = list.stream().filter(e -> e.isArchive() == true).collect(Collectors.toList());
-		return new Response(Message.STATUS200, Message.ALL_ARCHIVE, list1);
+		if (redisRepositoryImpl.findUser(token) != null) {                                                  //Check login user login or not
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+			checkNoteList(list);																			   //check list empty or not
+			List<Note> list1 = list.stream().filter(e -> e.isArchive() == true).collect(Collectors.toList());
+			return new Response(Message.STATUS200, Message.ALL_ARCHIVE, list1);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
 
 	/**
@@ -252,9 +265,14 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response getAllTrash(String token) {
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		List<Note> list1 = list.stream().filter(e -> e.isTrash() == true).collect(Collectors.toList());
-		return new Response(Message.STATUS200, Message.ALL_TRASH, list1);
+		if (redisRepositoryImpl.findUser(token) != null) {                                               //Check login user login or not
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());                       
+			checkNoteList(list);                                                                          //check list present or not
+			List<Note> list1 = list.stream().filter(e -> e.isTrash() == true).collect(Collectors.toList());
+			return new Response(Message.STATUS200, Message.ALL_TRASH, list1);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
 
 	/**
@@ -265,18 +283,22 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response trash(String token, int note_id) {
-		checkNoteByNoteId(note_id);
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
-		if (note.isTrash()) {
-			note.setTrash(false);
-			noteRepository.save(note);
-			return new Response(Message.STATUS200, Message.UNTRASH, null);
-		} else {
-			note.setTrash(true);
-			noteRepository.save(note);
-			return new Response(Message.STATUS200, Message.TRASH, null);
+		if (redisRepositoryImpl.findUser(token) != null) {                                             //Check login user login or not
+			checkNoteByNoteId(note_id);                                                                 //Check not by id
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+			checkNoteList(list);                                                                       //check list empty or not
+			Note note = list.stream().filter(e -> e.getNoteId() == note_id).collect(Collectors.toList()).get(0);
+			if (note.isTrash()) {
+				note.setTrash(false);
+				noteRepository.save(note);                                                             //add note in repository                         
+				return new Response(Message.STATUS200, Message.UNTRASH, null);
+			} else {                                                       
+				note.setTrash(true);                                    
+				noteRepository.save(note);                                                           //add note in repository
+				return new Response(Message.STATUS200, Message.TRASH, null);
+			}
 		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
@@ -288,25 +310,28 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response reminder(DateDto datedto, String token) {
-		List<Object> datelist = getDates(datedto.getReminderdate());
-		userService.isUser(token);
-		checkNoteByNoteId(datedto.getNoteid());
-		Optional<Note> cheknote = noteRepository.findById(datedto.getNoteid());
-		if (cheknote.get().getReminder() == null) {
-
+		if (redisRepositoryImpl.findUser(token) != null) {                                                   //Check login user login or not
+			List<Object> datelist = getDates(datedto.getReminderdate());                                    
+			userService.isUser(token);                                                                       // Chek user
 			checkNoteByNoteId(datedto.getNoteid());
-			Date systemdate = (Date) datelist.get(0);
-			Date userdate = (Date) datelist.get(1);
-			if (userdate.after(systemdate)) {
-				Note note = new Note();
-				note.setNoteId(datedto.getNoteid());
-				note.setReminder(systemdate.toString());
-				noteRepository.save(note);
-				return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+			Optional<Note> cheknote = noteRepository.findById(datedto.getNoteid());
+			if (cheknote.get().getReminder() == null) {
+				checkNoteByNoteId(datedto.getNoteid());
+				Date systemdate = (Date) datelist.get(0);
+				Date userdate = (Date) datelist.get(1);
+				if (userdate.after(systemdate)) {
+					Note note = new Note();
+					note.setNoteId(datedto.getNoteid());
+					note.setReminder(systemdate.toString());
+					noteRepository.save(note);
+					return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+				} else
+					return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
 			} else
-				return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
-		} else
-			return new Response(Message.STATUS200, Message.REMINDER_SET_ALLREADY, null);
+				return new Response(Message.STATUS200, Message.REMINDER_SET_ALLREADY, null);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
 
 	/**
@@ -318,19 +343,22 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response editReminder(DateDto datedto, String token) {
-		List<Object> datelist = getDates(datedto.getReminderdate());
-		userService.isUser(token);
-		checkNoteByNoteId(datedto.getNoteid());
-		Date systemdate = (Date) datelist.get(0);
-		Date userdate = (Date) datelist.get(1);
-		if (userdate.after(systemdate)) {
-			Note note = new Note();
-			note.setNoteId(datedto.getNoteid());
-			note.setReminder(datedto.getReminderdate());
-			noteRepository.save(note);
-			return new Response(Message.STATUS200, Message.REMINDER_SET, null);
-		} else
-			return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
+		if (redisRepositoryImpl.findUser(token) != null) {
+			List<Object> datelist = getDates(datedto.getReminderdate());
+			userService.isUser(token);
+			checkNoteByNoteId(datedto.getNoteid());
+			Date systemdate = (Date) datelist.get(0);
+			Date userdate = (Date) datelist.get(1);
+			if (userdate.after(systemdate)) {
+				Note note = new Note();
+				note.setNoteId(datedto.getNoteid());
+				note.setReminder(datedto.getReminderdate());
+				noteRepository.save(note);
+				return new Response(Message.STATUS200, Message.REMINDER_SET, null);
+			} else
+				return new Response(Message.STATUS200, Message.REMINDER_NOT_SET, null);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
@@ -342,14 +370,17 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response deleteReminder(int noteid, String token) {
-
-		userService.isUser(token);
-		checkNoteByNoteId(noteid);
-		List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
-		Note note = list.stream().filter(e -> e.getNoteId() == noteid).collect(Collectors.toList()).get(0);
-		note.setReminder(null);
-		noteRepository.save(note);
-		return new Response(Message.STATUS200, Message.REMINDER_DELETE, null);
+		if (redisRepositoryImpl.findUser(token) != null) {
+			userService.isUser(token);
+			checkNoteByNoteId(noteid);
+			List<Note> list = checkNoteByUserId(userService.isUser(token).getId());
+			checkNoteList(list);
+			Note note = list.stream().filter(e -> e.getNoteId() == noteid).collect(Collectors.toList()).get(0);
+			note.setReminder(null);
+			noteRepository.save(note);
+			return new Response(Message.STATUS200, Message.REMINDER_DELETE, null);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
 	}
 
@@ -361,14 +392,18 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response collaborator(CollaboratorDto collaboratorDto, String token) {
-		User user = userService.isUser(token);
-		checkNoteByNoteId(collaboratorDto.getNoteid());
-		User reciver = checkByUserByEmailId(collaboratorDto.getReciveremailid());
-		Collaborator collaborator = mapper.map(collaboratorDto, Collaborator.class);
-		collaborator.setReciverid(reciver.getId());
-		collaborator.setSenderid(user.getId());
-		collaboratorRepository.save(collaborator);
-		return new Response(Message.STATUS200, Message.COLABORATOR_ADDED, null);
+		if (redisRepositoryImpl.findUser(token) != null) {
+			User user = userService.isUser(token);
+			checkNoteByNoteId(collaboratorDto.getNoteid());
+			User reciver = checkByUserByEmailId(collaboratorDto.getReciveremailid());
+			Collaborator collaborator = mapper.map(collaboratorDto, Collaborator.class);
+			collaborator.setReciverid(reciver.getId());
+			collaborator.setSenderid(user.getId());
+			collaboratorRepository.save(collaborator);
+			return new Response(Message.STATUS200, Message.COLABORATOR_ADDED, null);
+		}
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
 
 	/**
@@ -378,28 +413,34 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response getCollaborated(String token, int noteid) {
-		User user = userService.isUser(token);
-		checkNoteByNoteId(noteid);
-		checkNoteByUserId(user.getId());
-		Collaborated collaboratedlist = new Collaborated();
-		List<Collaborator> list = collaboratorRepository.findAllBySenderid(user.getId()); // get list of collaborated
-																							// row
-		list = list.stream().filter(e -> e.getNoteid() == noteid).collect(Collectors.toList());
-		if (list != null) {
-			List<String> listofemails = new ArrayList<String>();
-			for (Collaborator collaborator : list) {
-				listofemails.add(userRepository.findById(collaborator.getReciverid()).get().getEmail()); // list of
-																											// reciever
-			}
-			List<String> emails = listofemails.stream().distinct().collect(Collectors.toList()); // remove douplicate
-			collaboratedlist.setSender(user.getEmail());
-			collaboratedlist.setReciever(emails);
+		if (redisRepositoryImpl.findUser(token) != null) {
 
-			return new Response(Message.STATUS200, Message.COLLABORATE_LIST, collaboratedlist);
+			User user = userService.isUser(token);
+			checkNoteByNoteId(noteid);
+			checkNoteByUserId(user.getId());
+			Collaborated collaboratedlist = new Collaborated();
+			List<Collaborator> list = collaboratorRepository.findAllBySenderid(user.getId()); // get list of
+																								// collaborated
+			if (list != null) {																					// row
+		     	list = list.stream().filter(e -> e.getNoteid() == noteid).collect(Collectors.toList());			
+				List<String> listofemails = new ArrayList<String>();
+				for (Collaborator collaborator : list) {
+					listofemails.add(userRepository.findById(collaborator.getReciverid()).get().getEmail()); // list of
+																												// reciever
+				}
+				List<String> emails = listofemails.stream().distinct().collect(Collectors.toList()); // remove
+																										// douplicate
+				collaboratedlist.setSender(user.getEmail());
+				collaboratedlist.setReciever(emails);
+
+				return new Response(Message.STATUS200, Message.COLLABORATE_LIST, collaboratedlist);
+			}
+			return new Response(Message.STATUS200, Message.COLLABORATE_LIST_IS_EMPTY, null);
 		}
-		return new Response(Message.STATUS200, Message.COLLABORATE_LIST_IS_EMPTY, null);
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
-	
+
 	/**
 	 * @purpose : To get all notes labels
 	 * @param : note id
@@ -408,25 +449,28 @@ public class NoteServiceImp implements INoteService {
 	 */
 	@Override
 	public Response getAllNoteLabels(String token, int noteid) {
-		userService.isUser(token);
-		checkNoteByNoteId(noteid);
-		List<UserLabel> list = new ArrayList<UserLabel>();
-		List<NoteLabel> labelist = noteLabelRepository.findAllByNoteid(noteid);
-		if (labelist != null) {
-			for (NoteLabel noteLabel : labelist) {
-				int id = noteLabel.getLabelid();
-				Optional<UserLabel> userLabel = userlabelRepository.findById(id);
-				list.add(userLabel.get());
-			}
+		if (redisRepositoryImpl.findUser(token) != null) {
 
-			return new Response(Message.STATUS200, Message.ALL_LABLE, list);
+			userService.isUser(token);
+			checkNoteByNoteId(noteid);
+			List<UserLabel> list = new ArrayList<UserLabel>();
+			List<NoteLabel> labelist = noteLabelRepository.findAllByNoteid(noteid);
+			if (labelist != null) {
+				for (NoteLabel noteLabel : labelist) {
+					int id = noteLabel.getLabelid();
+					Optional<UserLabel> userLabel = userlabelRepository.findById(id);
+					list.add(userLabel.get());
+				}
+				return new Response(Message.STATUS200, Message.ALL_LABLE, list);
+			}
+			return new Response(Message.STATUS200, Message.LABEL_NOT_FOUND, list);
 		}
-		return new Response(Message.STATUS200, Message.LABEL_NOT_FOUND, list);
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 	}
 
 	/**
 	 * @purpose : To get current date in dd-MM-yyyy format
-	 * @return  : String
+	 * @return : String
 	 */
 	private String currentDate() {
 		return LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")).toString();
@@ -437,17 +481,16 @@ public class NoteServiceImp implements INoteService {
 	 * @param userdate : store date
 	 * @return : Object type list
 	 */
-	public List<Object> getDates(String userdate)   {
+	public List<Object> getDates(String userdate) {
 		Date systemdate = null;
 		Date reminderdate = null;
 		try {
-		SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-mm-yyyy");
-		systemdate = simpleDateFormat.parse(currentDate());
-		System.out.println(systemdate);
-		reminderdate = simpleDateFormat.parse(userdate);
-		}catch(Exception e)
-		{
-			
+			SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd-mm-yyyy");
+			systemdate = simpleDateFormat.parse(currentDate());
+			System.out.println(systemdate);
+			reminderdate = simpleDateFormat.parse(userdate);
+		} catch (Exception e) {
+
 		}
 		System.out.println(reminderdate);
 		List<Object> list = new ArrayList<Object>();
@@ -457,9 +500,9 @@ public class NoteServiceImp implements INoteService {
 	}
 
 	/**
-	 * @purpose     :To check User By Email id
+	 * @purpose :To check User By Email id
 	 * @param email : string tyope
-	 * @return      : User type
+	 * @return : User type
 	 */
 	public User checkByUserByEmailId(String email) {
 		User user = userRepository.findByEmail(email);
@@ -470,48 +513,47 @@ public class NoteServiceImp implements INoteService {
 	}
 
 	/**
-	 * @purpose     :To sort notes by title
+	 * @purpose :To sort notes by title
 	 * @param token : String type
-	 * @return      :
+	 * @return :
 	 */
 	@SuppressWarnings("unchecked")
 	public Response sortByTitle(String token) {
-		userService.isUser(token);
-		List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
-		System.out.println(list);
-		try {
-			list = list.stream()
-					.sorted((list1, list2) -> list1.getNote().getTitle().compareTo(list2.getNote().getTitle()))
-					.collect(Collectors.toList());
-		} catch (Exception e) {
-			throw new CustomException.EmptyNoteListException("notes list is empty");
+		if (redisRepositoryImpl.findUser(token) != null) {
+			userService.isUser(token);
+			List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
+			try {
+				list = list.stream()
+						.sorted((list1, list2) -> list1.getNote().getTitle().compareTo(list2.getNote().getTitle()))
+						.collect(Collectors.toList());
+			} catch (Exception e) {
+				throw new CustomException.EmptyNoteListException("notes list is empty");
+			}
+			return new Response(Message.STATUS200, Message.SORTED_NOTE, list);
 		}
-		return new Response(Message.STATUS200, Message.SORTED_NOTE, list);
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
+
 	}
+
 	/**
-	 * @purpose     : To sort notes by description
+	 * @purpose : To sort notes by description
 	 * @param token : String type
-	 * @return      : R
+	 * @return : Response type
 	 */
 
 	@SuppressWarnings("unchecked")
 	public Response sortByDscription(String token) {
-		userService.isUser(token);
-		List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();
-        System.out.println("list isssssssssssssssssss"+list);
-        for(SotedNote note: list)
-        {
-        	System.out.println(note.getNote().getDesctiption());
-        }
-		if(list.isEmpty())
-		{	
-			throw new CustomException.EmptyNoteListException("notes list is empty");
-			
+		if (redisRepositoryImpl.findUser(token) != null) {
+			userService.isUser(token);
+			List<SotedNote> list = (List<SotedNote>) getAllNotes(token).getObj();			
+			if (list.isEmpty()) {
+				throw new CustomException.EmptyNoteListException("notes list is empty");
+			}
+			List<SotedNote> list3 = list.stream().sorted((list1, list2) -> list1.getNote().getDesctiption().compareTo(list2.getNote().getDesctiption())).collect(Collectors.toList());
+			return new Response(Message.STATUS200, Message.SORTED_NOTE, list3);
 		}
-		List<SotedNote>list3= list.stream().sorted((list1, list2) -> list1.getNote().getDesctiption().compareTo(list2.getNote().getDesctiption()))
-				.collect(Collectors.toList());			
+		return new Response(Message.STATUS200, Message.USER_NOT_LOGIN, null);
 
-		return new Response(Message.STATUS200, Message.SORTED_NOTE, list3);
 	}
 
 	/**
@@ -521,9 +563,9 @@ public class NoteServiceImp implements INoteService {
 	 */
 
 	public List<Note> checkNoteByUserId(int userid) {
-		
-		List<Note>	list = noteRepository.findByUserId(userid);
-         jwtUtil.checkNoteList(list);     
+
+		List<Note> list = noteRepository.findByUserId(userid);
+		jwtUtil.checkNoteList(list);
 		return list;
 	}
 
@@ -532,12 +574,9 @@ public class NoteServiceImp implements INoteService {
 	 * @param : int
 	 * @return : Note Type
 	 */
-	public Note checkNoteByNoteId(int note_id) {	
-			Note note = noteRepository.findById(note_id).orElseThrow(()->new CustomException.InvalidNoteException("invalid note id"));		 
-			return note;
+	public Note checkNoteByNoteId(int note_id) {
+		Note note = noteRepository.findById(note_id).orElseThrow(() -> new CustomException.InvalidNoteException("invalid note id"));
+		return note;
 	}
-
-	
-
 
 }

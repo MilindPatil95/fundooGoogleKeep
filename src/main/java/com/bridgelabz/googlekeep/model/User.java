@@ -16,6 +16,7 @@ public class User {
 	private String password;
 	private String email;
 	private String profilepath;
+	private boolean isVerified;
 	
 	public String getProfilepath() {
 		return profilepath;
@@ -74,4 +75,11 @@ public class User {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+	public boolean isVerified() {
+		return isVerified;
+	}
+	public void setVerified(boolean isVerified) {
+		this.isVerified = isVerified;
+	}
+	
 }

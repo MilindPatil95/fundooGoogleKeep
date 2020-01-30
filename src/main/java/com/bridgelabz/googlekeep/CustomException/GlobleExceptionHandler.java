@@ -13,26 +13,26 @@ import com.bridgelabz.googlekeep.utility.Message;
 public class GlobleExceptionHandler 
 {   
 	@ExceptionHandler(CustomException.InvalidTokenException.class)
-	public Response invalidTokenResponse()
+	public Response invalidTokenResponse(CustomException.InvalidTokenException e)
 	{
-		return new Response(Message.STATUS200,Message.INVALID_TOKEN,null);
+		return new Response(Message.STATUS200,e.getMessage(),null);
 	}
 	
 	@ExceptionHandler(CustomException.TokenExpiredException.class)
-	public Response tokenExpireResponse()
+	public Response tokenExpireResponse(CustomException.TokenExpiredException e)
 	{
-		return new Response(Message.STATUS200,Message.TOKEN_EXPIRED, null);
+		return new Response(Message.STATUS200,e.getMessage(), null);
 	}
 	@ExceptionHandler(CustomException.InvalidNoteException.class)
-	public Response InvalidNoteResponse()
+	public Response InvalidNoteResponse(CustomException.InvalidNoteException e)
 	{
-		return new Response(Message.STATUS200, Message.NOTE_NOT_PRESENT, null);
+		return new Response(Message.STATUS200,e.getMessage(), null);
 	}
 	
 	@ExceptionHandler(CustomException.EmptyNoteListException.class)
-	public Response noteListIsEmptyResponse()
+	public Response noteListIsEmptyResponse(CustomException.EmptyNoteListException e)
 	{
-		return new Response(Message.STATUS200, Message.NOTES_NOT_PRESENT, null);
+		return new Response(Message.STATUS200, e.getMessage(), null);
 	}
 	@ExceptionHandler(CustomException.InvaidLabelException.class)
 	public Response InvaidLabelResponse()

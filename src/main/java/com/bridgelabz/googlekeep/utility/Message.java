@@ -24,7 +24,7 @@ public class Message {
 	public static final String PASSWORD_MISSMATCH = "Password Miss Match";
 	public static final String PASSWORD_UDATED = "Password Updated";
 	public static final String INVALID_PASSWORD = "Invalid Password";
-	public static final String INVALID = "Invalid User_Name or Password";
+	public static final String INVALID = "Token not verified";
 	public static final String INVALID_ID = "Invalid User Id";
 	public static final String TOKEN_EXPIRED = "Token expired";
 	public static final String USER_INVALID = "User Invalid";
@@ -85,6 +85,10 @@ public class Message {
 	public static final String LABELS_NOT_FOUND = "Label not found";
 	public static final String PROFILE_SAVE_SUCCESSFULLY = "Profile save successfully";
 	public static final String PROFILE_NOT_SAVE = "profile not save";
+	public static final String USER_LOGOUT = "User Logout Successfully";
+	public static final String USER_ALREADY_LOGOUT = "User Already Logout";
+	public static final String USER_NOT_LOGIN = "User not login ";
+	public static final String TOKEN_VERIFIED_SUCCESSFULL = "token verified successfully";
 
 	
 	

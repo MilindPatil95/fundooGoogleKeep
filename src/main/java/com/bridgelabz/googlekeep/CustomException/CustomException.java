@@ -13,12 +13,11 @@ public class CustomException {
 		}
 	}
 
+	@SuppressWarnings("serial")
 	public static class EmptyUserListException extends RuntimeException {
 		/**
 		 * 
-		 */
-		private static final long serialVersionUID = 1L;
-
+		 */		
 		public EmptyUserListException(String message) {
 			super(message);
 		}

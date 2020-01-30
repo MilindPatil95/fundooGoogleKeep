@@ -37,14 +37,6 @@ public class Response {
 		this.status = status;
 	}
 
-	public String getUser_added() {
-		return message;
-	}
-
-	public void setUser_added(String message) {
-		this.message = message;
-	}
-
 	
 
 }
